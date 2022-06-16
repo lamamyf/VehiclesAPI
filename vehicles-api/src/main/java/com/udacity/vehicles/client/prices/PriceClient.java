@@ -2,8 +2,10 @@ package com.udacity.vehicles.client.prices;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Implements a class to interface with the Pricing Client for price data.
@@ -13,10 +15,13 @@ public class PriceClient {
 
     private static final Logger log = LoggerFactory.getLogger(PriceClient.class);
 
-    private final WebClient client;
+    private final WebClient.Builder webClient;
 
-    public PriceClient(WebClient pricing) {
-        this.client = pricing;
+    @Value("${pricing.endpoint}")
+    private String pricingEndpoint;
+
+    public PriceClient(WebClient.Builder webClient) {
+        this.webClient = webClient;
     }
 
     // In a real-world application we'll want to add some resilience
@@ -32,12 +37,14 @@ public class PriceClient {
      */
     public String getPrice(Long vehicleId) {
         try {
-            Price price = client
+            Price price = webClient
+                    .build()
                     .get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("services/price/")
+                    .uri(UriComponentsBuilder
+                            .fromHttpUrl(pricingEndpoint)
                             .queryParam("vehicleId", vehicleId)
                             .build()
+                            .toUri()
                     )
                     .retrieve().bodyToMono(Price.class).block();
 
